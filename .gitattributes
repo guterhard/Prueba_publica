@@ -1,0 +1,162 @@
+PUT /log_consultas
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "estado_consulta": {
+        "type": "keyword"
+      },
+      "servicio": {
+        "type": "keyword"
+      },
+      "administrador": {
+        "type": "text"
+      },
+      "consultas_realizadas": {
+        "type": "integer"
+      }
+    }
+  }
+}
+
+POST /log_consultas/_doc/1
+{
+  "@timestamp": "2010-05-15T22:00:54",
+  "estado_consulta": "consumo",
+  "servicio": "consulta",
+  "administrador": "Juan Carlos",
+  "consultas_realizadas": 52
+}
+------ CREAR UN INDICE -------------
+PUT /log_consultas
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "estado_consulta": {
+        "type": "keyword"
+      },
+      "servicio": {
+        "type": "keyword"
+      },
+      "administrador": {
+        "type": "text"
+      },
+      "consultas_realizadas": {
+        "type": "integer"
+      }
+    }
+  }
+}
+------------Aggregar un documento al indice ------------
+POST /log_consultas/_doc/1
+{
+  "@timestamp": "2010-05-15T22:00:54",
+  "estado_consulta": "consumo",
+  "servicio": "consulta",
+  "administrador": "Juan Carlos",
+  "consultas_realizadas": 52
+}
+----------Obtener el mapeo---------------------------
+GET /log_consultas/_mapping
+---------Crear un temple API--------------------------
+
+PUT /_template/log_consultas_template
+{
+  "index_patterns": ["log_consultas*"],
+  "mappings": {
+    "_source": {
+      "enabled": true
+    },
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "estado_consulta": {
+        "type": "keyword"
+      },
+      "servicio": {
+        "type": "keyword"
+      },
+      "administrador": {
+        "type": "text"
+      },
+      "consultas_realizadas": {
+        "type": "integer"
+      }
+    }
+  }
+}
+----------------------Preparar el archivo------------------
+{ "index" : { "_index" : "log_consultas", "_type" : "_doc" } }
+{ "@timestamp": "2010-05-15T22:00:54", "estado_consulta": "consumo", "servicio": "consulta", "administrador": "Juan Carlos", "consultas_realizadas": 52 }
+{ "index" : { "_index" : "log_consultas", "_type" : "_doc" } }
+{ "@timestamp": "2010-05-16T12:30:00", "estado_consulta": "facturacion", "servicio": "consulta", "administrador": "Maria Rodriguez", "consultas_realizadas": 30 }
+# Agrega más documentos según sea necesario
+
+---------------------------- Verificar la carga---------------------
+
+curl -X GET "localhost:9200/log_consultas/_search" -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "match_all": {}
+  }
+}
+'
+------------------------- Obtener el nuero de registros-------------------
+
+curl -X GET "localhost:9200/log_consultas/_search" -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "terms": {
+      "estado_consulta": ["error", "consumo"]
+    }
+  }
+}
+'
+-----------------------Obtener el numero de registros por Juan Luna-----------
+
+curl -X GET "localhost:9200/log_consultas/_search" -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "match": {
+      "administrador": "Juan Lara"
+    }
+  }
+}
+'
+----Obtener el número de registros con estado_consulta igual a informativo y servicio igual a borrado---
+curl -X GET "localhost:9200/log_consultas/_search" -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "estado_consulta": "informativo" } },
+        { "match": { "servicio": "borrado" } }
+      ]
+    }
+  }
+}
+'
+-------------- Obtener la suma de los valores en consultas_realizadas con estado_consulta igual a error---
+
+curl -X GET "localhost:9200/log_consultas/_search" -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "match": {
+      "estado_consulta": "error"
+    }
+  },
+  "aggs": {
+    "total_consultas_error": {
+      "sum": {
+        "field": "consultas_realizadas"
+      }
+    }
+  }
+}
+'
